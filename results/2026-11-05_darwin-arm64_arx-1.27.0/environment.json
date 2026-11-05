@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-05",
+  "arx": "1.27.0",
+  "arx_commit": "5ff7e9db",
+  "arx_path": "/Users/krishnasingh/mamba/envs/arx/bin/arx",
+  "clang": "Apple clang version 21.0.0 (clang-2100.3.34.2)",
+  "clang_path": "/tmp/applecc/clang",
+  "hyperfine": "hyperfine 2.0.0",
+  "python": "3.14.10",
+  "os": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "cpu": "Apple M1",
+  "cpu_count": 8,
+  "harness_commit": "557d903",
+  "harness_dirty": false
+}
