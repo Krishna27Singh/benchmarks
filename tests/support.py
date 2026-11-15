@@ -9,14 +9,22 @@ import bench  # noqa: E402
 def write_hyperfine_1(path, rows):
     payload = {"results": []}
     for row in rows:
+        times = row.get("times", [row["median"]])
+        memory = row.get("memory_usage_byte")
         result = {
             "command": row["command"],
+            "mean": row.get("mean", row["median"]),
+            "stddev": row.get("stddev", 0.0),
             "median": row["median"],
             "min": row["min"],
-            "stddev": row.get("stddev", 0.0),
+            "max": row.get("max", max(times)),
+            "user": row.get("user", row.get("mean", row["median"])),
+            "system": row.get("system", 0.0),
+            "times": times,
+            "exit_codes": row.get("exit_codes", [0] * len(times)),
         }
-        if "memory_usage_byte" in row:
-            result["memory_usage_byte"] = row["memory_usage_byte"]
+        if memory is not None:
+            result["memory_usage_byte"] = memory if isinstance(memory, list) else [memory]
         payload["results"].append(result)
     path.write_text(json.dumps(payload) + "\n")
 
@@ -33,20 +41,33 @@ def write_hyperfine_2(path, rows):
         "results": [],
     }
     for row in rows:
+        measurements = row.get("measurements")
+        if measurements is None:
+            measurements = [{"time_wall_clock": row["median"]} for _ in range(3)]
+            if "memory" in row:
+                for measurement in measurements:
+                    measurement["memory_peak_resident"] = row["memory"]
         result = {
             "command": row["command"],
             "name": row["name"],
+            "measurements": measurements,
             "summary": {
                 "time_wall_clock": {
+                    "mean": row.get("mean", row["median"]),
                     "median": row["median"],
                     "min": row["min"],
                     "stddev": row.get("stddev", 0.0),
+                    "max": row.get("max", row["median"]),
                 }
             },
         }
         if "memory" in row:
             result["summary"]["memory_peak_resident"] = {
-                "median": row["memory"]
+                "mean": row["memory"],
+                "stddev": 0.0,
+                "median": row["memory"],
+                "min": row["memory"],
+                "max": row["memory"],
             }
         payload["results"].append(result)
     path.write_text(json.dumps(payload) + "\n")

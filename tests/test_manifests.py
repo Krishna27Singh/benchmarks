@@ -1,7 +1,9 @@
 import tomllib
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from support import bench
@@ -21,13 +23,20 @@ class ManifestTests(unittest.TestCase):
                 ids = []
                 for case in data["case"]:
                     self.assertIn("id", case)
-                    self.assertIn("args", case)
+                    self.assertIsInstance(case["id"], str)
+                    self.assertTrue(case["id"])
                     self.assertIn("expected", case)
                     self.assertIsInstance(case["expected"], str)
-                    self.assertIsInstance(case["runs"], int)
-                    self.assertGreaterEqual(case["runs"], 1)
-                    self.assertIsInstance(case["warmup"], int)
-                    self.assertGreaterEqual(case["warmup"], 1)
+                    if "args" in case:
+                        self.assertIsInstance(case["args"], list)
+                    runs = case.get("runs", 10)
+                    self.assertIsInstance(runs, int)
+                    self.assertNotIsInstance(runs, bool)
+                    self.assertGreaterEqual(runs, 1)
+                    warmup = case.get("warmup", 2)
+                    self.assertIsInstance(warmup, int)
+                    self.assertNotIsInstance(warmup, bool)
+                    self.assertGreaterEqual(warmup, 0)
                     ids.append(case["id"])
                     for source in case.get("arx", {}).values():
                         self.assertTrue((manifest.parent / source).is_file())
@@ -57,3 +66,30 @@ class ManifestTests(unittest.TestCase):
         """Prevents typos in explicit suite selections from running nothing."""
         with self.assertRaises(SystemExit):
             bench.load_suites(["unknown"])
+
+    def test_optional_case_fields_follow_harness_defaults(self):
+        """Prevents manifests from requiring fields that the harness defaults."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            suite = root / "defaults"
+            suite.mkdir()
+            (suite / "benchmark.toml").write_text(
+                'name = "defaults"\n'
+                "\n"
+                "[[case]]\n"
+                'id = "implicit"\n'
+                'expected = "ok"\n'
+                "\n"
+                "[[case]]\n"
+                'id = "zero-warmup"\n'
+                'expected = "ok"\n'
+                "warmup = 0\n"
+            )
+            with patch.object(bench, "SUITES", root):
+                suites = bench.load_suites(["defaults"])
+                plan = bench.select(suites, None)
+            self.assertEqual(len(plan), 2)
+            self.assertNotIn("args", plan[0][1])
+            self.assertNotIn("runs", plan[0][1])
+            self.assertNotIn("warmup", plan[0][1])
+            self.assertEqual(plan[1][1]["warmup"], 0)

@@ -20,15 +20,15 @@ class ReportTests(unittest.TestCase):
                 "1.x",
                 [
                     {"command": "python", "median": 2.5, "min": 2.0, "stddev": 0.2,
-                     "memory_usage_byte": 1048576},
+                     "memory_usage_byte": [1048576, 2097152, 1048576]},
                     {"command": "c-O2", "median": 1.25, "min": 1.2, "stddev": 0.05,
-                     "memory_usage_byte": 2097152},
+                     "memory_usage_byte": [2097152, 2097152, 2097152]},
                 ],
                 [
                     {"command": "python", "median": 1.0, "min": 0.9, "stddev": 0.1,
-                     "memory_usage_byte": 524288},
+                     "memory_usage_byte": [524288, 524288, 524288]},
                     {"command": "c-O2", "median": 0.25, "min": 0.2, "stddev": 0.05,
-                     "memory_usage_byte": 262144},
+                     "memory_usage_byte": [262144, 262144, 262144]},
                 ],
             )
             output = io.StringIO()
@@ -54,9 +54,9 @@ class ReportTests(unittest.TestCase):
             run = make_run(
                 root,
                 "2.x-memory",
-                [{"command": "python", "name": "python", "median": 0.8, "min": 0.7,
+                [{"command": "/usr/bin/python3 fib.py", "name": "python", "median": 0.8, "min": 0.7,
                   "stddev": 0.1, "memory": 2097152}],
-                [{"command": "python", "name": "python", "median": 0.5, "min": 0.4,
+                [{"command": "/usr/bin/python3 empty.py", "name": "python", "median": 0.5, "min": 0.4,
                   "stddev": 0.1, "memory": 1048576}],
             )
             output = io.StringIO()
@@ -66,6 +66,7 @@ class ReportTests(unittest.TestCase):
             self.assertIn("memory (MiB)", text)
             self.assertIn("2.0", text)
             self.assertIn("1.0", text)
+            self.assertIn("| python |", text)
 
     def test_report_parses_hyperfine_2_without_memory(self):
         """Prevents hyperfine 2.x reports without memory data from failing."""
@@ -74,9 +75,9 @@ class ReportTests(unittest.TestCase):
             run = make_run(
                 root,
                 "2.x",
-                [{"command": "python", "name": "python", "median": 0.8, "min": 0.7,
+                [{"command": "/usr/bin/python3 fib.py", "name": "python", "median": 0.8, "min": 0.7,
                   "stddev": 0.1}],
-                [{"command": "python", "name": "python", "median": 1.0, "min": 0.9,
+                [{"command": "/usr/bin/python3 empty.py", "name": "python", "median": 1.0, "min": 0.9,
                   "stddev": 0.1}],
                 memory=False,
             )
@@ -89,6 +90,7 @@ class ReportTests(unittest.TestCase):
             self.assertIn("0.0000", text)
             self.assertIn("1.0x", text)
             self.assertNotIn("memory (MiB)", text)
+            self.assertIn("| python |", text)
 
     def test_report_without_baseline_omits_startup_columns(self):
         """Prevents reports without a baseline from inventing startup timings."""
@@ -97,7 +99,7 @@ class ReportTests(unittest.TestCase):
             run = make_run(
                 root,
                 "2.x-no-baseline",
-                [{"command": "python", "name": "python", "median": 0.8, "min": 0.7,
+                [{"command": "/usr/bin/python3 fib.py", "name": "python", "median": 0.8, "min": 0.7,
                   "stddev": 0.1}],
                 [{"command": "python", "name": "python", "median": 0.2, "min": 0.1,
                   "stddev": 0.1}],

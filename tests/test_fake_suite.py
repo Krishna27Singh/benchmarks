@@ -1,3 +1,5 @@
+import contextlib
+import io
 import os
 import platform
 import shutil
@@ -50,6 +52,20 @@ class FakeSuiteTests(unittest.TestCase):
             self.assertEqual(len(finished), 1)
             self.assertTrue((finished[0] / "complete.json").is_file())
             self.assertEqual(partial, [])
+            direct_output = io.StringIO()
+            with contextlib.redirect_stdout(direct_output):
+                bench.cmd_report(Namespace(dir=str(finished[0])))
+            latest_output = io.StringIO()
+            with patch.object(bench, "RESULTS", result_root), \
+                    contextlib.redirect_stdout(latest_output):
+                bench.cmd_report(Namespace(dir=None))
+            for output in (direct_output.getvalue(), latest_output.getvalue()):
+                self.assertIn("#### fake", output)
+                self.assertIn("**small**", output)
+                self.assertIn("| python |", output)
+                self.assertIn("startup (s)", output)
+                self.assertIn("net (s)", output)
+                self.assertIn("1.0x", output)
 
     @requires_hyperfine
     def test_wrong_expected_leaves_only_partial_run(self):
