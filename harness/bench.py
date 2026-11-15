@@ -18,6 +18,7 @@ import os
 import platform
 import shlex
 import shutil
+import statistics
 import subprocess
 import sys
 import tomllib
@@ -412,6 +413,10 @@ def parse_row(r: dict) -> tuple:
     else:  # hyperfine 1.x
         med, mn, sd = r["median"], r["min"], r.get("stddev") or 0.0
         mem = r.get("memory_usage_byte")
+        if isinstance(mem, list):
+            mem = statistics.median(mem) if mem and all(
+                isinstance(value, (int, float)) and not isinstance(value, bool) for value in mem
+            ) else None
     mib = mem / (1024 * 1024) if isinstance(mem, (int, float)) else None
     return name, med, mn, sd, mib
 
